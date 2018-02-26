@@ -1,5 +1,10 @@
-import tkinter as tk
-import os.path
+try:
+	import tkinter as tk # Python 3
+except:
+	import Tkinter as tk # Python 2
+import os
+
+from pathfinding import findPath
 
 # generate list from txt, also generate tiles list from dimensions
 def getMaze(baseFilePath, num):
@@ -18,25 +23,42 @@ def getMaze(baseFilePath, num):
 # draws maze from given list
 def update(l, tiles, dim):
 	for i in range(len(l)):
+		c.create_line(0, i * dim, len(l) * dim, i * dim)
+		c.create_line(i * dim, 0, i * dim, len(l) * dim)
 		for j in range(len(l)):
 			val = l[i][j]
 			if val == 1:
 				tiles[i][j] = c.create_rectangle(j * dim, i * dim, (j + 1) * dim, (i + 1) * dim, fill = "black")
-			elif tiles[i][j] != None:
-				c.delete(tiles[i][j])
-				tiles[i][j] = None
+			elif val == 2:
+				tiles[i][j] = c.create_rectangle(j * dim, i * dim, (j + 1) * dim, (i + 1) * dim, fill = "green")
+			elif val == 3:
+				tiles[i][j] = c.create_rectangle(j * dim, i * dim, (j + 1) * dim, (i + 1) * dim, fill = "red")
+			elif val == 4:
+				tiles[i][j] = c.create_rectangle(j * dim, i * dim, (j + 1) * dim, (i + 1) * dim, fill = "gray")
+			# elif tiles[i][j] != None:
+			# 	c.delete(tiles[i][j])
+			# 	tiles[i][j] = None
 
 # main vars
-baseFilePath = "C:/Users/Cedric/Documents/Workplace/Python/mazeSamples"
-sizeMap = 505
+baseFilePath = os.path.join(os.getcwd(), "mazeSamples")
+l, tiles = getMaze(baseFilePath, 0)
+
+# fully create maze
+start = (1, 4)
+goal = (88, 99)
+l[start[1]][start[0]] = 0
+l[goal[1]][goal[0]] = 0
+
+l = findPath(start, goal, l)
+
 # generates the window
 root = tk.Tk()
 # generates the canvas and adjusts size of window to fit
+sizeMap = 808
 c = tk.Canvas(root, width = sizeMap + 300, height = sizeMap, background = 'white')
 c.pack()
 # positions widgets on right side
 # update map
-l, tiles = getMaze(baseFilePath, 0)
 dim = (int)(sizeMap // len(l))
 update(l, tiles, dim)
 
