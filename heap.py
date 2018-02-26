@@ -40,3 +40,10 @@ class Heap(object):
 				self.vals[loc], self.vals[loc * 2 + 1] = self.vals[loc * 2 + 1], self.vals[loc]
 				loc = loc * 2 + 1
 		return x, y
+
+	# turns a non-heap into a heap, with paired values
+	def heapify(self, other, otherVals):
+		x = Heap()
+		for i in range(len(other)):
+			x.insert(other[i], otherVals[i])
+		return x
