@@ -112,9 +112,8 @@ def setG(gVals, node, gVal):
 	gVals[loc[1]][loc[0]] = gVal
 	node.gVal = gVal
 
-def calcF(gVals, loc, goal):
-	hVal = abs(loc[0] - goal[0]) + abs(loc[1] - goal[1])
-	return getG(gVals, loc) + hVal
+def calcF(gVals, loc, hVals):
+	return getG(gVals, loc) + hVals[loc[1]][loc[0]]
 
 def inBounds(loc, mapWidth, mapHeight):
 	return loc[0] >= 0 and loc[1] >= 0 and loc[0] < mapWidth and loc[1] < mapHeight
@@ -122,47 +121,50 @@ def inBounds(loc, mapWidth, mapHeight):
 def isClear(loc, gridMap):
 	return gridMap[loc[1]][loc[0]] == 0
 
-def addNeighbor(newLoc, parentNode, gVals, openHeap, goal):
+def addNeighbor(newLoc, parentNode, gVals, openHeap, goal, hVals):
 	currG = getG(gVals, parentNode.loc) + 1
 	if getG(gVals, newLoc) > currG:
 		newNode = Node(newLoc)
 		setG(gVals, newNode, currG)
-		newNode.fVal = calcF(gVals, newLoc, goal)
+		newNode.fVal = calcF(gVals, newLoc, hVals)
 		newNode.parent = parentNode
 
 		openHeap.heap_insert(newNode)
 
-def compute_path(start, goal, currMap, mapHeight, mapWidth, numExpanded):
+def compute_path(start, goal, currMap, mapHeight, mapWidth, hVals, numExpanded):
 	gVals = [[float('inf') for i in range(mapWidth)] for j in range(mapHeight)]
 
 	startNode = Node(start)
 	setG(gVals, startNode, 0)
-	startNode.fVal = calcF(gVals, start, goal)
+	startNode.fVal = calcF(gVals, start, hVals)
 
 	openHeap = Heap()
 	openHeap.heap_insert(startNode)
 
+	closedList = []
+
 	while not openHeap.heap_empty() and getG(gVals, goal) > openHeap.heap_peek():
 		expandNode = openHeap.heap_delete_min()
 		expandLoc = expandNode.loc
+		closedList.append(expandLoc)
 
 		numExpanded = numExpanded + 1
 
 		newLoc = (expandLoc[0] - 1, expandLoc[1])
 		if inBounds(newLoc, mapHeight, mapWidth) and isClear(newLoc, currMap):
-			addNeighbor(newLoc, expandNode, gVals, openHeap, goal)
+			addNeighbor(newLoc, expandNode, gVals, openHeap, goal, hVals)
 
 		newLoc = (expandLoc[0] + 1, expandLoc[1])
 		if inBounds(newLoc, mapHeight, mapWidth) and isClear(newLoc, currMap):
-			addNeighbor(newLoc, expandNode, gVals, openHeap, goal)
+			addNeighbor(newLoc, expandNode, gVals, openHeap, goal, hVals)
 
 		newLoc = (expandLoc[0], expandLoc[1] - 1)
 		if inBounds(newLoc, mapHeight, mapWidth) and isClear(newLoc, currMap):
-			addNeighbor(newLoc, expandNode, gVals, openHeap, goal)
+			addNeighbor(newLoc, expandNode, gVals, openHeap, goal, hVals)
 
 		newLoc = (expandLoc[0], expandLoc[1] + 1)
 		if inBounds(newLoc, mapHeight, mapWidth) and isClear(newLoc, currMap):
-			addNeighbor(newLoc, expandNode, gVals, openHeap, goal)
+			addNeighbor(newLoc, expandNode, gVals, openHeap, goal, hVals)
 
 	if openHeap.heap_empty():
 		# print('No path found.')
@@ -173,9 +175,14 @@ def compute_path(start, goal, currMap, mapHeight, mapWidth, numExpanded):
 		goalNode = openHeap.heap_delete_min()
 
 	currNode = goalNode
+	currLen = 0
 	while currNode.loc != start:
 		currNode.parent.child = currNode
 		currNode = currNode.parent
+		currLen = currLen + 1
+
+	for loc in closedList:
+		hVals[loc[1]][loc[0]] = currLen - gVals[loc[1]][loc[0]]
 
 	return currNode, numExpanded
 
@@ -196,11 +203,24 @@ def discoverNeighbors(currLoc, mapHeight, mapWidth, knownMap, actualMap):
 	if inBounds(newLoc, mapHeight, mapWidth):
 		knownMap[newLoc[1]][newLoc[0]] = actualMap[newLoc[1]][newLoc[0]]
 
+def init_Hvals(goal, mapWidth, mapHeight):
+	hVals = [[0 for i in range(mapWidth)] for j in range(mapHeight)]
+	for i in range(mapHeight):
+		yDist = abs(goal[1] - i)
+		for j in range(mapWidth):
+			xDist = abs(goal[0] - j)
+			hVals[i][j] = xDist + yDist
+
+	return hVals
+
 def findPath(start, goal, gridMap):
 	mapHeight = len(gridMap)
 	mapWidth = len(gridMap[0])
 
 	numExpanded = 0
+
+	hVals = init_Hvals(goal, mapWidth, mapHeight)
+	# printMap(hVals)
 
 	# deep copy from https://stackoverflow.com/questions/6532881/how-to-make-a-copy-of-a-2d-array-in-python
 	pathMap = [row[:] for row in gridMap]
@@ -209,14 +229,14 @@ def findPath(start, goal, gridMap):
 	currLoc = start
 	discoverNeighbors(currLoc, mapHeight, mapWidth, knownMap, gridMap)
 
-	currNode, numExpanded = compute_path(start, goal, knownMap, mapHeight, mapWidth, numExpanded)
+	currNode, numExpanded = compute_path(start, goal, knownMap, mapHeight, mapWidth, hVals, numExpanded)
 	while currNode is not None and currNode.child.loc != goal:
 		if isClear(currNode.child.loc, knownMap):
 			currNode = currNode.child
 			pathMap[currNode.loc[1]][currNode.loc[0]] = 4
 			discoverNeighbors(currNode.loc, mapHeight, mapWidth, knownMap, gridMap)
 		else:
-			currNode, numExpanded = compute_path(currNode.loc, goal, knownMap, mapHeight, mapWidth, numExpanded)
+			currNode, numExpanded = compute_path(currNode.loc, goal, knownMap, mapHeight, mapWidth, hVals, numExpanded)
 
 	pathMap[start[1]][start[0]] = 2
 	pathMap[goal[1]][goal[0]] = 3

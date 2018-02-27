@@ -4,7 +4,8 @@ except:
 	import Tkinter as tk # Python 2
 import os
 
-from pathfinding import findPath
+# from pathfinding import findPath
+from adaptive_pathfinding import findPath
 
 # generate list from txt, also generate tiles list from dimensions
 def getMaze(baseFilePath, num):
@@ -41,25 +42,27 @@ def update(l, tiles, dim):
 
 # main vars
 baseFilePath = os.path.join(os.getcwd(), "mazeSamples")
-l, tiles = getMaze(baseFilePath, 0)
+for i in range(50):
+	l, tiles = getMaze(baseFilePath, i)
 
-# fully create maze
-start = (1, 4)
-goal = (88, 99)
-l[start[1]][start[0]] = 0
-l[goal[1]][goal[0]] = 0
+	# fully create maze
+	start = (4, 4)
+	goal = (90, 90)
+	l[start[1]][start[0]] = 0
+	l[goal[1]][goal[0]] = 0
 
-l = findPath(start, goal, l)
+	l, numExpanded = findPath(start, goal, l)
+	print(numExpanded)
 
-# generates the window
-root = tk.Tk()
-# generates the canvas and adjusts size of window to fit
-sizeMap = 808
-c = tk.Canvas(root, width = sizeMap + 300, height = sizeMap, background = 'white')
-c.pack()
-# positions widgets on right side
-# update map
-dim = (int)(sizeMap // len(l))
-update(l, tiles, dim)
+# # generates the window
+# root = tk.Tk()
+# # generates the canvas and adjusts size of window to fit
+# sizeMap = 808
+# c = tk.Canvas(root, width = sizeMap + 300, height = sizeMap, background = 'white')
+# c.pack()
+# # positions widgets on right side
+# # update map
+# dim = (int)(sizeMap // len(l))
+# update(l, tiles, dim)
 
-root.mainloop()
+# root.mainloop()
